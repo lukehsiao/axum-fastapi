@@ -1,0 +1,20 @@
+# just manual: https://github.com/casey/just
+
+_default:
+	@just --list
+
+# Runs clippy on the sources
+check:
+	cargo clippy --locked -- -D warnings
+
+# check security advisories
+audit:
+	cargo deny check advisories
+
+# Runs nextest
+test:
+	cargo nextest run
+
+# Sets up a watcher that lints, tests, and builds
+watch:
+	cargo watch -x 'clippy --all-targets --all-features -- -D warnings' -x 'nextest run' -x 'build --release'
