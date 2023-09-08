@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = ""
+authors = ["Luke Hsiao <luke@hsiao.dev>"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = {version = "^0.103.1", extras = ["all"]}
+sqlalchemy = {version = "^2.0.20", extras = ["postgresql"]}
+
+[tool.poetry.group.dev.dependencies]
+rich = "^13.5.2"
+python-lsp-server = {version = "^1.8.0", extras = ["all"]}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

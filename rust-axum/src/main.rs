@@ -9,8 +9,8 @@
 //! Test with curl:
 //!
 //! ```not_rust
-//! curl 127.0.0.1:3000
-//! curl -X POST 127.0.0.1:3000
+//! curl 127.0.0.1:8000
+//! curl -X POST 127.0.0.1:8000
 //! ```
 
 use std::{net::SocketAddr, time::Duration};
@@ -62,7 +62,7 @@ async fn main() {
     let app = Router::new().route("/", get(read_users)).with_state(pool);
 
     // run it with hyper
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
