@@ -42,7 +42,7 @@ async fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "example_tokio_postgres=debug".into()),
+                .unwrap_or_else(|_| "rust-axum=debug".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -96,13 +96,13 @@ async fn read_users(
 ) -> Result<(StatusCode, Json<Vec<User>>), (StatusCode, String)> {
     let users: Vec<User> = sqlx::query_as!(
         User,
-        "SELECT user_id, username, email FROM \"user\" ORDER BY user_id"
+        "SELECT user_id, username, email FROM \"user\" ORDER BY user_id LIMIT 100"
     )
     .fetch_all(&mut *conn)
     .await
     .map_err(internal_error)?;
 
-    Ok((StatusCode::OK, Json(users[..50].to_vec())))
+    Ok((StatusCode::OK, Json(users)))
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error`
