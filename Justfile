@@ -23,7 +23,7 @@ psql:
 
 # run the stress test for N requests and C workers
 oha N='50000' C='10':
-	oha -n {{N}} -c {{C}} http://localhost:8000/
+	oha -n {{N}} -c {{C}} --disable-keepalive http://localhost:8000/
 
 # Initialize the postgres database
 initdb:
