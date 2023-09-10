@@ -169,6 +169,115 @@ Status code distribution:
 For the curious, there are [flamegraphs](https://www.brendangregg.com/flamegraphs.html) provided from my machine in the directories of the servers.
 For rust, it was collected by running the benchmark and using [cargo-flamegraph](https://github.com/flamegraph-rs/flamegraph), while for python, it was collected using [py-spy](https://github.com/benfred/py-spy).
 
+## What about coordinated omission?
+
+`oha`, the load generator I'm using, does support compensating for [coordinated omission](https://redhatperf.github.io/post/coordinated-omission/).
+But, if I do so, it _really_ makes FastAPI look bad.
+So bad, that I'd highly suspect I'm doing something wrong, but haven't dug into it yet.
+
+Here's what it looks like with `-q 10000` and `--latency-correction`:
+
+| Metric           |  FastAPI |   Axum | Improvement (%) |
+| :--------------- | -------: | -----: | --------------: |
+| Throughput (rps) |    `317` | `9920` |          `3029` |
+| 50% latency (ms) |  `75000` | `16.2` |         `99.97` |
+| 99% latency (ms) | `151000` | `40.4` |         `99.97` |
+
+I think you'll agree that this looks crazy, and suggests there is something I should tweak about the setup.
+If you have ideas, please reach out!
+
+### FastAPI
+
+```
+❯ oha -n 50000 -c 10 --disable-keepalive --latency-correction -q 10000 http://localhost:8000/
+Summary:
+  Success rate: 100.00%
+  Total:        157.5955 secs
+  Slowest:      152.5937 secs
+  Fastest:      0.0147 secs
+  Average:      76.0228 secs
+  Requests/sec: 317.2680
+
+  Total data:   490.90 MiB
+  Size/request: 10.05 KiB
+  Size/sec:     3.11 MiB
+
+Response time histogram:
+    0.015 [1]    |
+   15.273 [4820] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+   30.531 [4859] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+   45.788 [5246] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+   61.046 [5362] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+   76.304 [5037] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+   91.562 [4983] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  106.820 [5207] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  122.078 [4564] |■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  137.336 [5088] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  152.594 [4833] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+Response time distribution:
+  10% in 15.7830 secs
+  25% in 38.8800 secs
+  50% in 75.2023 secs
+  75% in 113.5457 secs
+  90% in 136.7149 secs
+  95% in 145.2185 secs
+  99% in 151.1093 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:   0.0001 secs, 0.0000 secs, 0.0011 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0003 secs
+
+Status code distribution:
+  [200] 50000 responses
+```
+
+### Axum
+
+```
+❯ oha -n 50000 -c 10 --disable-keepalive --latency-correction -q 10000 http://localhost:8000/
+Summary:
+  Success rate: 100.00%
+  Total:        5.0403 secs
+  Slowest:      0.0415 secs
+  Fastest:      0.0020 secs
+  Average:      0.0199 secs
+  Requests/sec: 9920.0133
+
+  Total data:   490.90 MiB
+  Size/request: 10.05 KiB
+  Size/sec:     97.40 MiB
+
+Response time histogram:
+  0.002 [1]     |
+  0.006 [2400]  |■■■■■
+  0.010 [1570]  |■■■
+  0.014 [9299]  |■■■■■■■■■■■■■■■■■■■■
+  0.018 [14379] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.022 [4971]  |■■■■■■■■■■■
+  0.026 [3931]  |■■■■■■■■
+  0.030 [4365]  |■■■■■■■■■
+  0.034 [2941]  |■■■■■■
+  0.038 [1462]  |■■■
+  0.042 [4681]  |■■■■■■■■■■
+
+Response time distribution:
+  10% in 0.0105 secs
+  25% in 0.0137 secs
+  50% in 0.0162 secs
+  75% in 0.0265 secs
+  90% in 0.0371 secs
+  95% in 0.0394 secs
+  99% in 0.0404 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:   0.0000 secs, 0.0000 secs, 0.0011 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0004 secs
+
+Status code distribution:
+  [200] 50000 responses
+```
+
 ## Running your own
 
 I've provided a [Justfile](https://just.systems/man/en/) to help run things the way I did.
@@ -191,7 +300,7 @@ Monitor the system utilization of `uvicorn` or `rust-axum` however you please; I
 ## Complaints?
 
 Benchmarks are hard.
-If you think something is significantly unfair, please let me know!
+If you think something is wrong or unfair, please let me know!
 
 ## License
 
