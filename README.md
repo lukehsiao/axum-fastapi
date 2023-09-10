@@ -169,6 +169,65 @@ Status code distribution:
 For the curious, there are [flamegraphs](https://www.brendangregg.com/flamegraphs.html) provided from my machine in the directories of the servers.
 For rust, it was collected by running the benchmark and using [cargo-flamegraph](https://github.com/flamegraph-rs/flamegraph), while for python, it was collected using [py-spy](https://github.com/benfred/py-spy).
 
+## What about with more uvicorn workers?
+
+If I run
+
+```
+uvicorn app.main:app --log-level critical --host 0.0.0.0 --port 8000 --workers 16
+```
+
+both the memory usage and CPU usage increase (e.g, up to ~1200 MiB).
+
+Then, the results look like
+
+```
+oha -n 50000 -c 10 --disable-keepalive http://localhost:8000/
+Summary:
+  Success rate: 100.00%
+  Total:        30.4154 secs
+  Slowest:      0.0669 secs
+  Fastest:      0.0022 secs
+  Average:      0.0061 secs
+  Requests/sec: 1643.9041
+
+  Total data:   490.90 MiB
+  Size/request: 10.05 KiB
+  Size/sec:     16.14 MiB
+
+Response time histogram:
+  0.002 [1]     |
+  0.009 [46282] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.015 [2905]  |■■
+  0.022 [21]    |
+  0.028 [5]     |
+  0.035 [4]     |
+  0.041 [11]    |
+  0.047 [207]   |
+  0.054 [477]   |
+  0.060 [80]    |
+  0.067 [7]     |
+
+Response time distribution:
+  10% in 0.0034 secs
+  25% in 0.0039 secs
+  50% in 0.0051 secs
+  75% in 0.0065 secs
+  90% in 0.0082 secs
+  95% in 0.0094 secs
+  99% in 0.0482 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:   0.0001 secs, 0.0000 secs, 0.0013 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0006 secs
+
+Status code distribution:
+  [200] 50000 responses
+```
+
+This is a ~448% improvement in throughput, a significant 83% improvement in median latency, but only a 36% improvement in 99-percentile latency.
+Certainly not linear improvement with 16x more processes, and still slower than Axum.
+
 ## What about coordinated omission?
 
 `oha`, the load generator I'm using, does support compensating for [coordinated omission](https://redhatperf.github.io/post/coordinated-omission/).
