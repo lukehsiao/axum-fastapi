@@ -27,6 +27,10 @@ use sqlx::{
     postgres::{PgPool, PgPoolOptions},
     FromRow,
 };
+use tower_http::{
+    trace::{DefaultOnResponse, TraceLayer},
+    LatencyUnit,
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// A struct representing a Document's JSON.
@@ -59,7 +63,16 @@ async fn main() {
         .expect("can't connect to database");
 
     // build our application with some routes
-    let app = Router::new().route("/", get(read_users)).with_state(pool);
+    let app = Router::new()
+        .route("/", get(read_users))
+        .with_state(pool)
+        .layer(
+            TraceLayer::new_for_http().on_response(
+                DefaultOnResponse::new()
+                    .include_headers(true)
+                    .latency_unit(LatencyUnit::Micros),
+            ),
+        );
 
     // run it with hyper
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
