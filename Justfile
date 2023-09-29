@@ -8,7 +8,7 @@ python:
 	#!/usr/bin/env bash
 	set -euxo pipefail
 	cd {{justfile_directory()}}/python-fastapi
-	poetry run uvicorn app.main:app --log-level critical
+	poetry run uvicorn app.main:app --log-level critical --workers 10
 
 # Run the axum server
 rust:
