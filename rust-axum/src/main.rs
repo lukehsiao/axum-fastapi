@@ -92,17 +92,17 @@ where
 }
 
 async fn read_users(
-    DatabaseConnection(mut conn): DatabaseConnection,
+    DatabaseConnection(mut _conn): DatabaseConnection,
 ) -> Result<(StatusCode, Json<Vec<User>>), (StatusCode, String)> {
-    let users: Vec<User> = sqlx::query_as!(
-        User,
-        "SELECT user_id, username, email FROM \"user\" ORDER BY user_id LIMIT 100"
-    )
-    .fetch_all(&mut *conn)
-    .await
-    .map_err(internal_error)?;
+    // let users: Vec<User> = sqlx::query_as!(
+    //     User,
+    //     "SELECT user_id, username, email FROM \"user\" ORDER BY user_id LIMIT 100"
+    // )
+    // .fetch_all(&mut *conn)
+    // .await
+    // .map_err(internal_error)?;
 
-    Ok((StatusCode::OK, Json(users)))
+    Ok((StatusCode::OK, Json(vec![])))
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error`

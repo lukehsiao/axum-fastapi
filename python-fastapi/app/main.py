@@ -20,5 +20,6 @@ def get_db():
 
 @app.get("/", response_model=list[schemas.User])
 def read_users(db: Session = Depends(get_db)):
-    users = crud.get_users(db)
-    return users
+    # users = crud.get_users(db)
+    # return users
+    return []
