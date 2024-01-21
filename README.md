@@ -10,6 +10,24 @@
 
 This repo contains two implementations of a _very_ simple web server.
 
+**Contents**
+- [What the servers do](#what-the-servers-do)
+- [The FastAPI server](#the-fastapi-server)
+- [The Axum server](#the-axum-server)
+- [Modifying the code](#modifying-the-code)
+- [Example Benchmark Results](#example-benchmark-results)
+  - [FastAPI](#fastapi)
+  - [Axum](#axum)
+  - [Flamegraphs](#flamegraphs)
+- [What about with more uvicorn workers?](#what-about-with-more-uvicorn-workers)
+- [What about coordinated omission?](#what-about-coordinated-omission)
+  - [FastAPI](#fastapi-1)
+  - [Axum](#axum-1)
+- [Running your own](#running-your-own)
+  - [Example setup](#example-setup)
+- [Complaints?](#complaints)
+- [License](#license)
+
 ## What the servers do
 
 In both cases, the server fetches users from the `users` table with the following query and returns the results.
