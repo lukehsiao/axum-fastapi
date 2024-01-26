@@ -1,0 +1,18 @@
+version: 2
+updates:
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "monthly"
+    - package-ecosystem: "cargo"
+      directory: "rust-axum"
+      schedule:
+          interval: "monthly"
+    - package-ecosystem: "pip"
+      directory: "python-fastapi"
+      schedule:
+          interval: "monthly"
+    - package-ecosystem: "pip"
+      directory: "python-fastapi-async"
+      schedule:
+          interval: "monthly"
