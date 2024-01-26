@@ -10,6 +10,13 @@ python:
 	cd {{justfile_directory()}}/python-fastapi
 	poetry run uvicorn app.main:app --log-level critical
 
+# Run the fastapi (async) server
+python-async:
+	#!/usr/bin/env bash
+	set -euxo pipefail
+	cd {{justfile_directory()}}/python-fastapi-async
+	poetry run uvicorn app.main:app --log-level critical
+
 # Run the axum server
 rust:
 	#!/usr/bin/env bash

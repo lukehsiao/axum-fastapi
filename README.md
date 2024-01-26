@@ -13,10 +13,12 @@ This repo contains two implementations of a _very_ simple web server.
 **Contents**
 - [What the servers do](#what-the-servers-do)
 - [The FastAPI server](#the-fastapi-server)
+- [The Full Async FastAPI server](#the-full-async-fastapi-server)
 - [The Axum server](#the-axum-server)
 - [Modifying the code](#modifying-the-code)
 - [Example Benchmark Results](#example-benchmark-results)
   - [FastAPI](#fastapi)
+  - [FastAPI (async)](#fastapi-async)
   - [Axum](#axum)
   - [Flamegraphs](#flamegraphs)
 - [What about with more uvicorn workers?](#what-about-with-more-uvicorn-workers)
@@ -56,6 +58,12 @@ While this may seem somewhat unfair (throughput and latency improve with more wo
 Increasing the number of workers to `N` improves throughput and latency, but also multiplies memory usage by `N`, as each worker runs its own process.
 As is typically done with FastAPI, we use SQLAlchemy and Pydantic for structured responses.
 
+## The Full Async FastAPI server
+
+This FastAPI server takes a different, more optimal approach of doing _everything_ asynchronously.
+It deviates more from the FastAPI tutorial, but is also _very_ simple, and actually more structurally similar to the Axum server.
+When benchmarking, we still run it with `uvicorn` and a single worker (the default).
+
 ## The Axum server
 
 The Axum server is modeled almost directly from the [Axum example for sqlx and postgres](https://github.com/tokio-rs/axum/tree/503d31976f8504bba76d9ff6d3b20738eb0f3385/examples/sqlx-postgres/src).
@@ -70,63 +78,124 @@ In both cases, the code is extremely basic, and should be easy to tweak and expe
 
 ## Example Benchmark Results
 
-On my personal PC with 16 GB of RAM and a Ryzen 7 3700X (8-core, 16-thread), I saw the following.
+On my personal PC with 64 GB of DDR5 RAM and a Ryzen 7 7800X3D (8-core, 16-thread), I saw the following.
 Server and postgres all running locally.
 
-Comparing the numbers (details below), we find the following improvements.
+Here's a table comparing the results
 
-| Metric                  | FastAPI |   Axum | Improvement (%) |
-| :---------------------- | ------: | -----: | --------------: |
-| Throughput (rps)        |   `305` | `9740` |          `3093` |
-| 50% latency (ms)        |  `30.0` |  `1.0` |            `97` |
-| 99% latency (ms)        |  `74.6` |  `1.4` |            `98` |
-| Peak Memory Usage (MiB) |    `83` |   `10` |            `88` |
+| Metric                  | FastAPI | FastAPI (async) |   Axum  |
+| :---------------------- | ------: | --------------: | ------: |
+| Throughput (rps)        |   `612` |          `2267` | `15363` |
+| 50% latency (ms)        |  `15.4` |           `2.2` |   `0.6` |
+| 99% latency (ms)        |  `29.1` |           `2.5` |   `0.9` |
+| 99.9% latency (ms)      |  `33.4` |           `3.1` |   `1.0` |
+| Peak Memory Usage (MiB) |    `78` |            `69` |    `11` |
+| Peak CPU Usage (%)      |   `7.0` |           `5.9` |  `15.9` |
+
+Comparing to the synchronous FastAPI baseline specifically, we find the following improvements (×).
+
+| Metric                  | FastAPI | FastAPI (async) |   Axum  |
+| :---------------------- | ------: | --------------: | ------: |
+| Throughput (×)          |     `1` |          `3.70` |  `25.1` |
+| 50% latency (1/×)       |     `1` |           `7.0` |  `25.7` |
+| 99% latency (1/×)       |     `1` |          `11.7` |  `32.3` |
+| 99.9% latency (1/×)     |     `1` |          `10.8` |  `33.4` |
+| Peak Memory Usage (1/×) |     `1` |           `1.1` |   `7.1` |
+| Peak CPU Usage (×)      |     `1` |           `0.8` |   `2.3` |
 
 ### FastAPI
 
-#### Resources
-Peak CPU usage about ~8.5% and 83MiB of memory.
-
-#### Performance
+#### Details
 ```
 oha -n 50000 -c 10 --disable-keepalive http://localhost:8000/
 Summary:
   Success rate: 100.00%
-  Total:        164.1245 secs
-  Slowest:      0.1092 secs
-  Fastest:      0.0026 secs
-  Average:      0.0328 secs
-  Requests/sec: 304.6468
+  Total:        81.7200 secs
+  Slowest:      0.0383 secs
+  Fastest:      0.0051 secs
+  Average:      0.0163 secs
+  Requests/sec: 611.8453
 
-  Total data:   490.90 MiB
-  Size/request: 10.05 KiB
-  Size/sec:     2.99 MiB
+  Total data:   490.14 MiB
+  Size/request: 10
+  Size/sec:     6.00 MiB
 
 Response time histogram:
-  0.003 [1]     |
-  0.013 [359]   |
-  0.024 [11478] |■■■■■■■■■■■■■■■■
-  0.035 [22030] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-  0.045 [9187]  |■■■■■■■■■■■■■
-  0.056 [3143]  |■■■■
-  0.067 [2315]  |■■■
-  0.077 [1142]  |■
-  0.088 [292]   |
-  0.099 [43]    |
-  0.109 [10]    |
+  0.005 [1]     |
+  0.008 [29]    |
+  0.012 [1328]  |■■
+  0.015 [20848] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.018 [18842] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.022 [3972]  |■■■■■■
+  0.025 [2614]  |■■■■
+  0.028 [1685]  |■■
+  0.032 [533]   |
+  0.035 [124]   |
+  0.038 [24]    |
 
 Response time distribution:
-  10% in 0.0198 secs
-  25% in 0.0242 secs
-  50% in 0.0300 secs
-  75% in 0.0373 secs
-  90% in 0.0513 secs
-  95% in 0.0615 secs
-  99% in 0.0746 secs
+  10.00% in 0.0130 secs
+  25.00% in 0.0141 secs
+  50.00% in 0.0154 secs
+  75.00% in 0.0173 secs
+  90.00% in 0.0217 secs
+  95.00% in 0.0249 secs
+  99.00% in 0.0291 secs
+  99.90% in 0.0334 secs
+  99.99% in 0.0374 secs
 
 Details (average, fastest, slowest):
-  DNS+dialup:   0.0006 secs, 0.0003 secs, 0.0009 secs
-  DNS-lookup:   0.0004 secs, 0.0001 secs, 0.0007 secs
+  DNS+dialup:   0.0001 secs, 0.0000 secs, 0.0005 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0004 secs
+
+Status code distribution:
+  [200] 50000 responses
+```
+
+### FastAPI (async)
+
+#### Details
+```
+oha -n 50000 -c 10 --disable-keepalive http://localhost:8000/
+Summary:
+  Success rate: 100.00%
+  Total:        22.0537 secs
+  Slowest:      22.0526 secs
+  Fastest:      0.0019 secs
+  Average:      0.0044 secs
+  Requests/sec: 2267.1906
+
+  Total data:   490.14 MiB
+  Size/request: 10
+  Size/sec:     22.22 MiB
+
+Response time histogram:
+   0.002 [1]     |
+   2.207 [49993] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+   4.412 [1]     |
+   6.617 [0]     |
+   8.822 [0]     |
+  11.027 [0]     |
+  13.232 [0]     |
+  15.437 [0]     |
+  17.642 [1]     |
+  19.848 [1]     |
+  22.053 [3]     |
+
+Response time distribution:
+  10.00% in 0.0021 secs
+  25.00% in 0.0021 secs
+  50.00% in 0.0022 secs
+  75.00% in 0.0022 secs
+  90.00% in 0.0024 secs
+  95.00% in 0.0024 secs
+  99.00% in 0.0025 secs
+  99.90% in 0.0031 secs
+  99.99% in 2.7683 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:   0.0000 secs, 0.0000 secs, 0.0005 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0004 secs
 
 Status code distribution:
   [200] 50000 responses
@@ -134,49 +203,48 @@ Status code distribution:
 
 ### Axum
 
-#### Resources
-Peak CPU usage about ~21% and 10MiB of memory.
-
-#### Performance
+#### Details
 ```
 oha -n 50000 -c 10 --disable-keepalive http://localhost:8000/
 Summary:
   Success rate: 100.00%
-  Total:        5.1335 secs
-  Slowest:      0.0023 secs
-  Fastest:      0.0005 secs
-  Average:      0.0010 secs
-  Requests/sec: 9739.9668
+  Total:        3.2546 secs
+  Slowest:      0.0014 secs
+  Fastest:      0.0003 secs
+  Average:      0.0006 secs
+  Requests/sec: 15362.6923
 
-  Total data:   490.90 MiB
-  Size/request: 10.05 KiB
-  Size/sec:     95.63 MiB
+  Total data:   490.14 MiB
+  Size/request: 10
+  Size/sec:     150.60 MiB
 
 Response time histogram:
-  0.001 [1]     |
-  0.001 [22]    |
-  0.001 [3528]  |■■■
-  0.001 [29451] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-  0.001 [13913] |■■■■■■■■■■■■■■■
-  0.001 [2633]  |■■
-  0.002 [386]   |
-  0.002 [49]    |
-  0.002 [12]    |
-  0.002 [3]     |
-  0.002 [2]     |
+  0.000 [1]     |
+  0.000 [3]     |
+  0.001 [813]   |■
+  0.001 [24488] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.001 [19610] |■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.001 [4344]  |■■■■■
+  0.001 [650]   |
+  0.001 [74]    |
+  0.001 [8]     |
+  0.001 [4]     |
+  0.001 [5]     |
 
 Response time distribution:
-  10% in 0.0009 secs
-  25% in 0.0009 secs
-  50% in 0.0010 secs
-  75% in 0.0011 secs
-  90% in 0.0012 secs
-  95% in 0.0013 secs
-  99% in 0.0014 secs
+  10.00% in 0.0006 secs
+  25.00% in 0.0006 secs
+  50.00% in 0.0006 secs
+  75.00% in 0.0007 secs
+  90.00% in 0.0007 secs
+  95.00% in 0.0008 secs
+  99.00% in 0.0009 secs
+  99.90% in 0.0010 secs
+  99.99% in 0.0013 secs
 
 Details (average, fastest, slowest):
-  DNS+dialup:   0.0000 secs, 0.0000 secs, 0.0009 secs
-  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0006 secs
+  DNS+dialup:   0.0000 secs, 0.0000 secs, 0.0004 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0003 secs
 
 Status code distribution:
   [200] 50000 responses
@@ -203,50 +271,54 @@ Then, the results look like
 oha -n 50000 -c 10 --disable-keepalive http://localhost:8000/
 Summary:
   Success rate: 100.00%
-  Total:        30.4154 secs
-  Slowest:      0.0669 secs
-  Fastest:      0.0022 secs
-  Average:      0.0061 secs
-  Requests/sec: 1643.9041
+  Total:        4.7476 secs
+  Slowest:      0.0030 secs
+  Fastest:      0.0006 secs
+  Average:      0.0009 secs
+  Requests/sec: 10531.5539
 
-  Total data:   490.90 MiB
-  Size/request: 10.05 KiB
-  Size/sec:     16.14 MiB
+  Total data:   490.14 MiB
+  Size/request: 10
+  Size/sec:     103.24 MiB
 
 Response time histogram:
-  0.002 [1]     |
-  0.009 [46282] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-  0.015 [2905]  |■■
-  0.022 [21]    |
-  0.028 [5]     |
-  0.035 [4]     |
-  0.041 [11]    |
-  0.047 [207]   |
-  0.054 [477]   |
-  0.060 [80]    |
-  0.067 [7]     |
+  0.001 [1]     |
+  0.001 [11841] |■■■■■■■■■■■■■■
+  0.001 [26594] |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.001 [7971]  |■■■■■■■■■
+  0.002 [2927]  |■■■
+  0.002 [481]   |
+  0.002 [121]   |
+  0.002 [35]    |
+  0.002 [12]    |
+  0.003 [12]    |
+  0.003 [5]     |
 
 Response time distribution:
-  10% in 0.0034 secs
-  25% in 0.0039 secs
-  50% in 0.0051 secs
-  75% in 0.0065 secs
-  90% in 0.0082 secs
-  95% in 0.0094 secs
-  99% in 0.0482 secs
+  10.00% in 0.0008 secs
+  25.00% in 0.0008 secs
+  50.00% in 0.0009 secs
+  75.00% in 0.0010 secs
+  90.00% in 0.0012 secs
+  95.00% in 0.0013 secs
+  99.00% in 0.0016 secs
+  99.90% in 0.0021 secs
+  99.99% in 0.0027 secs
 
 Details (average, fastest, slowest):
-  DNS+dialup:   0.0001 secs, 0.0000 secs, 0.0013 secs
-  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0006 secs
+  DNS+dialup:   0.0001 secs, 0.0000 secs, 0.0010 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0005 secs
 
 Status code distribution:
   [200] 50000 responses
 ```
 
-This is a ~448% improvement in throughput, a significant 83% improvement in median latency, but only a 36% improvement in 99-percentile latency.
-Certainly not linear improvement with 16x more processes, and still slower than Axum.
+This is a significant improvement in both throughput and latency.
+Not quite a linear improvement with 16× more processes, and still slower than Axum.
 
 ## What about coordinated omission?
+
+_WARNING: Unlike the other results, this was done on a machine with only 16GB of DDR4 RAM and a AMD Ryzen 3700X._
 
 `oha`, the load generator I'm using, does support compensating for [coordinated omission](https://redhatperf.github.io/post/coordinated-omission/).
 But, if I do so, it _really_ makes FastAPI look bad.
@@ -254,11 +326,11 @@ So bad, that I'd highly suspect I'm doing something wrong, but haven't dug into 
 
 Here's what it looks like with `-q 10000` and `--latency-correction`:
 
-| Metric           |  FastAPI |   Axum | Improvement (%) |
-| :--------------- | -------: | -----: | --------------: |
-| Throughput (rps) |    `317` | `9920` |          `3029` |
-| 50% latency (ms) |  `75000` | `16.2` |         `99.97` |
-| 99% latency (ms) | `151000` | `40.4` |         `99.97` |
+| Metric           |  FastAPI |   Axum |
+| :--------------- | -------: | -----: |
+| Throughput (rps) |    `317` | `9920` |
+| 50% latency (ms) |  `75000` | `16.2` |
+| 99% latency (ms) | `151000` | `40.4` |
 
 I think you'll agree that this looks crazy, and suggests there is something I should tweak about the setup.
 If you have ideas, please reach out!
