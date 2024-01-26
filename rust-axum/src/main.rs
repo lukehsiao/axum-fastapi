@@ -13,7 +13,7 @@
 //! curl -X POST 127.0.0.1:8000
 //! ```
 
-use std::{net::SocketAddr, time::Duration};
+use std::time::Duration;
 
 use axum::{
     async_trait,
@@ -27,6 +27,7 @@ use sqlx::{
     postgres::{PgPool, PgPoolOptions},
     FromRow,
 };
+use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// A struct representing a Document's JSON.
@@ -62,12 +63,9 @@ async fn main() {
     let app = Router::new().route("/", get(read_users)).with_state(pool);
 
     // run it with hyper
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
-    tracing::debug!("listening on {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = TcpListener::bind("127.0.0.1:8000").await.unwrap();
+    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap()
 }
 
 // we can also write a custom extractor that grabs a connection from the pool
