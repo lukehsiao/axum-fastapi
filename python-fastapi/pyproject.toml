@@ -8,7 +8,7 @@ packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = {version = "^0.103.1", extras = ["all"]}
+fastapi = {version = "^0.109.0", extras = ["all"]}
 sqlalchemy = {version = "^2.0.20", extras = ["postgresql"]}
 
 [tool.poetry.group.dev.dependencies]
