@@ -12,7 +12,7 @@ sqlalchemy = {version = "^2.0.20", extras = ["postgresql"]}
 asyncpg = "^0.29.0"
 
 [tool.poetry.group.dev.dependencies]
-rich = "^13.5.2"
+rich = "^13.7.1"
 python-lsp-server = {version = "^1.8.0", extras = ["all"]}
 py-spy = "^0.3.14"
 
