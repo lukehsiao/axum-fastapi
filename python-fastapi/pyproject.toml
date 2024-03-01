@@ -9,7 +9,7 @@ packages = [{include = "app"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 fastapi = {version = "^0.109.0", extras = ["all"]}
-sqlalchemy = {version = "^2.0.20", extras = ["postgresql"]}
+sqlalchemy = {version = "^2.0.27", extras = ["postgresql"]}
 
 [tool.poetry.group.dev.dependencies]
 rich = "^13.5.2"
